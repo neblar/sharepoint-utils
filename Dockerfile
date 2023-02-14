@@ -4,7 +4,7 @@ USER root
 
 RUN apt-get update && apt-get install -y python3-pip
 
-RUN pip install selenium tqdm
+RUN pip install selenium tqdm httpx
 
 WORKDIR /home/workspace
 

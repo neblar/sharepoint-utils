@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from .flatten import Flatten
+from .download import Download
 from pathlib import Path
 
 
@@ -19,6 +20,12 @@ if __name__ == "__main__":
     flatten.add_argument("--item-based-scroll-time", type=float, default=0.1, help="Wait time (in seconds) between scrolling dynamic scroll pages with known number of items")
     flatten.add_argument("--scroll-delta", type=float, default=150, help="Number of pixels to scroll by for dynamic scroll pages, lower numbers makes the process slow, and too large number may result in skipping items and breaking the system")
     flatten.add_argument("--max-retries", type=int, default=2, help="Maximum number of times to retry downloading a given page before the entire process fails")
+    
+    download = parsers.add_parser("download")
+    download.add_argument("flatten_file_key", type=str, help="the file key for the flattened json file from flatten command")
+    download.add_argument("fed_auth", type=str, help="the FedAuth cookie obtained by visiting the website")
+    download.add_argument("--max-retries", type=int, default=2, help="Maximum number of times to retry downloading a given page before the entire process fails")
+    
     args = argparse.parse_args()
     output_dir = args.output_dir
 
@@ -37,4 +44,11 @@ if __name__ == "__main__":
             item_based_scroll_time=args.item_based_scroll_time,
             scroll_delta=args.scroll_delta,
             max_retries=args.max_retries
+        ).run()
+    elif args.command == "download":
+        Download(
+            flattened_json_path=f"{output_dir}/{args.flatten_file_key}",
+            fed_auth=args.fed_auth,
+            output_dir=f"{output_dir}/data",
+            max_retries=args.max_retries,
         ).run()

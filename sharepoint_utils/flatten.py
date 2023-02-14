@@ -106,7 +106,7 @@ class Flatten:
         url_items = json.loads(self.get_element_by_classname("ms-Breadcrumb-item").get_attribute('itemKey'))
         for path in reversed(url_items):
             if path is not None:
-                base_url = f"{self.scheme}://{self.domain}/{path}"
+                base_url = f"{self.scheme}://{self.domain}{path}"
                 return base_url
         raise ValueError("No path items found")
     
