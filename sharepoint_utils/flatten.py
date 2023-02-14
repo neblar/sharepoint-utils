@@ -1,6 +1,7 @@
 import re
 import time
 import json
+from tqdm import tqdm
 from typing import Optional
 from selenium import webdriver
 from urllib.parse import urlparse
@@ -109,7 +110,6 @@ class Flatten:
     
     def collect_items_from_page(self, base_url, current_depth):
         folder_items = self.get_elements_by_automationid("DetailsRow")
-        print(f"Going through {len(folder_items)} items")
         items = {}
         for item in folder_items:
             aria_label = item.get_attribute("aria-label")
@@ -153,10 +153,11 @@ class Flatten:
         current_items = len(items)
         self.wait_for_class(self.scroll_container_class)
         base_url = self.get_baseurl()
+        pbar = tqdm(desc="Collecting items", total=expected_items, position=current_depth, leave=False)
         while current_items < expected_items:
             # Scroll down to the bottom.
             scroll_height = self.get_scroll_height()
-            print(f"Last height: {scroll_height}")
+            pbar.set_postfix({"Last height": scroll_height})
             self.smooth_scroll_down()
             # Wait to load the page.
             time.sleep(self.item_based_scroll_time)
@@ -164,7 +165,8 @@ class Flatten:
             self.save_debug_info()
             items = self.add_items(base_url, items, current_depth)
             current_items = len(items)
-            print(f"Current: {current_items}, Expected: {expected_items}")
+            pbar.n = current_items
+            pbar.refresh()
         return items.values()
 
     def scroll_based_on_height(self, current_depth):
@@ -178,7 +180,6 @@ class Flatten:
         while True:
             # Scroll down to the bottom.
             last_height = self.get_scroll_height()
-            print(f"Last height: {last_height}")
             self.smooth_scroll_down()
             # Wait to load the page.
             time.sleep(self.height_based_scroll_time)
@@ -195,7 +196,6 @@ class Flatten:
         """
             Scroll the entire page and ensure all items have been rendered
         """
-        print(f"Rendering {parent.url}")
         self.driver.get(parent.url)
         if parent.expected_items is not None:
             items = self.scroll_based_on_expected_items(parent.expected_items, parent.depth)
@@ -217,7 +217,7 @@ class Flatten:
     def collect_recursively(self, starting_url):
         base = ListItem(name="base", url=starting_url, is_folder=True, expected_items=None, items=[], depth=0)
         folders = [base]
-
+        pbar = tqdm(desc="Flattening Sharepoint", position=0, total=1)
         while len(folders) > 0:
             next_folder = folders[0]
             if next_folder.depth == self.max_depth:
@@ -227,6 +227,9 @@ class Flatten:
                 if item.is_folder:
                     folders += [item]
             del folders[0]
+            pbar.total = len(folders)
+            pbar.update(1)
+            pbar.refresh()
 
         return base
 

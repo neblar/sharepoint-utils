@@ -1,7 +1,7 @@
 services:
   sharepoint-utils:
     build: .
-    image: sharepoint-utils:v1
+    image: neblar/sharepoint-utils:v1
     # We do not want to recreate the container or have multiple instances of it running ever
     container_name: sharepoint-utils
     volumes:
