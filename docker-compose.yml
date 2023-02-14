@@ -1,0 +1,10 @@
+services:
+  sharepoint-utils:
+    build: .
+    image: sharepoint-utils:v1
+    # We do not want to recreate the container or have multiple instances of it running ever
+    container_name: sharepoint-utils
+    volumes:
+      # Mount working folder
+      - ./sharepoint_utils:/home/workspace/sharepoint_utils
+      - ../output:/home/workspace/output
