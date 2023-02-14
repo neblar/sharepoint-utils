@@ -85,8 +85,9 @@ class Flatten:
     def get_elements_by_automationid(self, automationid):
         return self.get_elements(f"""//div[@data-automationid="{automationid}"]""")
 
-    def get_element_by_classname(self, classname):
-        return self.driver.find_element(By.CLASS_NAME, classname)
+    def get_element_by_classname(self, class_name):
+        self.wait_for_class(class_name)
+        return self.driver.find_element(By.CLASS_NAME, class_name)
 
     def is_folder(self, element):
             icon = element.find_element(By.XPATH, f""".//div[matches(@data-automation-key="fileTypeIconColumn_*"]//img""")
@@ -106,10 +107,9 @@ class Flatten:
                 return base_url
         raise ValueError("No path items found")
     
-    def collect_items_from_page(self, current_depth):
+    def collect_items_from_page(self, base_url, current_depth):
         folder_items = self.get_elements_by_automationid("DetailsRow")
         print(f"Going through {len(folder_items)} items")
-        base_url = self.get_baseurl()
         items = {}
         for item in folder_items:
             aria_label = item.get_attribute("aria-label")
@@ -122,8 +122,8 @@ class Flatten:
         if self.debug:
             self.driver.save_screenshot(self.debug_path)
             
-    def add_items(self, previous_items, current_depth):
-        new_items = self.collect_items_from_page(current_depth)
+    def add_items(self, base_url, previous_items, current_depth):
+        new_items = self.collect_items_from_page(base_url, current_depth)
         return dict(new_items, **previous_items)
     
     def get_scroll_height(self):
@@ -152,6 +152,7 @@ class Flatten:
         items = {}
         current_items = len(items)
         self.wait_for_class(self.scroll_container_class)
+        base_url = self.get_baseurl()
         while current_items < expected_items:
             # Scroll down to the bottom.
             scroll_height = self.get_scroll_height()
@@ -161,7 +162,7 @@ class Flatten:
             time.sleep(self.item_based_scroll_time)
             # Calculate new scroll height and compare with last scroll height.
             self.save_debug_info()
-            items = self.add_items(items, current_depth)
+            items = self.add_items(base_url, items, current_depth)
             current_items = len(items)
             print(f"Current: {current_items}, Expected: {expected_items}")
         return items.values()
@@ -173,6 +174,7 @@ class Flatten:
         # Get scroll height.
         items = {}
         self.wait_for_class(self.scroll_container_class)
+        base_url = self.get_baseurl()
         while True:
             # Scroll down to the bottom.
             last_height = self.get_scroll_height()
@@ -182,7 +184,7 @@ class Flatten:
             time.sleep(self.height_based_scroll_time)
             # Calculate new scroll height and compare with last scroll height.
             self.save_debug_info()
-            items = self.add_items(items, current_depth)
+            items = self.add_items(base_url, items, current_depth)
             new_height = self.get_scroll_height()
             if new_height == last_height:
                 break
