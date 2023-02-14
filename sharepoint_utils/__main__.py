@@ -18,6 +18,7 @@ if __name__ == "__main__":
     flatten.add_argument("--height-based-scroll-time", type=float, default=2, help="Wait time (in seconds) between scrolling dynamic scroll pages with unknown number of items")
     flatten.add_argument("--item-based-scroll-time", type=float, default=0.1, help="Wait time (in seconds) between scrolling dynamic scroll pages with known number of items")
     flatten.add_argument("--scroll-delta", type=float, default=150, help="Number of pixels to scroll by for dynamic scroll pages, lower numbers makes the process slow, and too large number may result in skipping items and breaking the system")
+    flatten.add_argument("--max-retries", type=int, default=2, help="Maximum number of times to retry downloading a given page before the entire process fails")
     args = argparse.parse_args()
     output_dir = args.output_dir
 
@@ -35,4 +36,5 @@ if __name__ == "__main__":
             height_based_scroll_time=args.height_based_scroll_time,
             item_based_scroll_time=args.item_based_scroll_time,
             scroll_delta=args.scroll_delta,
+            max_retries=args.max_retries
         ).run()

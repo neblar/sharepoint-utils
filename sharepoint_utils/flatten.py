@@ -34,6 +34,7 @@ class Flatten:
         height_based_scroll_time,
         item_based_scroll_time,
         scroll_delta,
+        max_retries,
     ) -> None:
         self.start_url = start_url
         self.debug = debug
@@ -47,6 +48,7 @@ class Flatten:
         self.scroll_container_class = "od-ItemsScopeItemContent-list"
         self.max_depth = max_depth
         self.scroll_delta = scroll_delta
+        self.max_retries = max_retries
 
         chrome_options = Options()
         chrome_flags = [
@@ -146,13 +148,12 @@ class Flatten:
         """
         self.driver.execute_script(js_script)
 
-    def scroll_based_on_expected_items(self, expected_items, current_depth):
+    def scroll_based_on_expected_items(self, base_url, expected_items, current_depth):
         """A method for scrolling the page."""
         """ From https://stackoverflow.com/a/48851166 """
         items = {}
         current_items = len(items)
         self.wait_for_class(self.scroll_container_class)
-        base_url = self.get_baseurl()
         pbar = tqdm(desc="Collecting items", total=expected_items, position=current_depth, leave=False)
         while current_items < expected_items:
             # Scroll down to the bottom.
@@ -169,14 +170,13 @@ class Flatten:
             pbar.refresh()
         return items.values()
 
-    def scroll_based_on_height(self, current_depth):
+    def scroll_based_on_height(self, base_url, current_depth):
         """A method for scrolling the page."""
         """This is slower as we wait five seconds after each scroll to accomodate slow pages"""
         """ From https://stackoverflow.com/a/48851166 """
         # Get scroll height.
         items = {}
         self.wait_for_class(self.scroll_container_class)
-        base_url = self.get_baseurl()
         while True:
             # Scroll down to the bottom.
             last_height = self.get_scroll_height()
@@ -197,10 +197,11 @@ class Flatten:
             Scroll the entire page and ensure all items have been rendered
         """
         self.driver.get(parent.url)
+        base_url = self.get_baseurl()
         if parent.expected_items is not None:
-            items = self.scroll_based_on_expected_items(parent.expected_items, parent.depth)
+            items = self.scroll_based_on_expected_items(base_url, parent.expected_items, parent.depth)
         else:
-            items = self.scroll_based_on_height(parent.depth)
+            items = self.scroll_based_on_height(base_url, parent.depth)
         parent.items = list(items)
         return parent
 
@@ -213,6 +214,16 @@ class Flatten:
         if is_folder:
             expected_items = int(re.findall(r'Folder has (\d+) items', parts[2])[0])
         return file_name, is_folder, expected_items
+    
+    def try_and_collect(self, parent_folder):
+        retries = 0
+        while retries <= self.max_retries:
+            try:
+                return self.collect_all_items(parent_folder)
+            except:
+                retries += 1
+                if retries >= self.max_retries:
+                    raise Exception("Max retries reached, too many failures")
 
     def collect_recursively(self, starting_url):
         base = ListItem(name="base", url=starting_url, is_folder=True, expected_items=None, items=[], depth=0)
@@ -223,7 +234,7 @@ class Flatten:
             next_folder = folders[current_index]
             if next_folder.depth == self.max_depth:
                 return base
-            folder = self.collect_all_items(next_folder)
+            folder = self.try_and_collect(next_folder)
             for item in folder.items:
                 if item.is_folder:
                     folders += [item]
