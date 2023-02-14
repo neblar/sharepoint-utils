@@ -218,18 +218,19 @@ class Flatten:
         base = ListItem(name="base", url=starting_url, is_folder=True, expected_items=None, items=[], depth=0)
         folders = [base]
         pbar = tqdm(desc="Flattening Sharepoint", position=0, total=1)
-        while len(folders) > 0:
-            next_folder = folders[0]
+        current_index = 0
+        while len(folders) > current_index:
+            next_folder = folders[current_index]
             if next_folder.depth == self.max_depth:
                 return base
-            folder = self.collect_all_items(folders[0])
+            folder = self.collect_all_items(next_folder)
             for item in folder.items:
                 if item.is_folder:
                     folders += [item]
-            del folders[0]
             pbar.total = len(folders)
             pbar.update(1)
             pbar.refresh()
+            current_index += 1
 
         return base
 
